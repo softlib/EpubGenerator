@@ -1,0 +1,8 @@
+﻿SELFTEST RESULT: PASS
+OUTPUT: C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub
+09:13:18  开始构建：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub
+09:13:18  元数据已写入，章节数 4，资源数 3
+09:13:18    资源 R001 [图片] -> OEBPS/Images/cover.png
+09:13:18    资源 R002 [音频] -> OEBPS/Media/narration.mp3
+09:13:18    资源 R003 [视频] -> OEBPS/Media/demo.mp4
+09:13:18  构建完成：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub（1040495 字节）
