@@ -2,6 +2,8 @@
 
 {$APPTYPE GUI}
 
+{$R AppIcon.res}
+
 uses
   Vcl.Forms,
   System.SysUtils,

@@ -191,6 +191,8 @@ type
     FPreviewBrowser: TWkeWebBrowser;
     { 最近一次加载到 FPreviewBrowser 的 HTML，用作源代码查看的后备 }
     FLastPreviewHtml: string;
+    { 是否已成功加载过一次预览（用于首次进入预览页时补加载） }
+    FPreviewLoadedOnce: Boolean;
     { 含非 ASCII 路径的媒体文件预览副本（临时 ASCII 路径，刷新时清理） }
     FPreviewTempFiles: TArray<string>;
     FPreviewCopyIndex: Integer;
@@ -234,6 +236,7 @@ type
     { HTML 预览 }
     procedure RefreshPreview;
     function BuildPreviewHtml(const ABody: string): string;
+    procedure PageControlChange(Sender: TObject);
     procedure BtnRefreshPreviewClick(Sender: TObject);
     procedure BtnViewSourceClick(Sender: TObject);
     function GetPreviewSource: string;
@@ -1182,6 +1185,7 @@ begin
   FIdCounter := 0;
   FLoading := False;
   FLastPreviewHtml := '';
+  FPreviewLoadedOnce := False;
   FPreviewCopyIndex := 0;
   SetLength(FPreviewTempFiles, 0);
   FMediaPreviewFiles := TDictionary<string, string>.Create;
@@ -1220,6 +1224,7 @@ begin
   FPageControl := TPageControl.Create(Self);
   FPageControl.Parent := Self;
   FPageControl.Align := alClient;
+  FPageControl.OnChange := PageControlChange;
 
   FStatusBar := TStatusBar.Create(Self);
   FStatusBar.Parent := Self;
@@ -2533,9 +2538,16 @@ begin
   RefreshMediaPanel;
 
   try
+    { 关键：Wke 内核的 webview 是在控件第一次获得窗口句柄时
+      （TWkeWebBrowser.CreateWindowHandle -> CreateWebView）才创建的。
+      程序启动停在“章节管理”页，隐藏的预览页上的 FPreviewBrowser 尚无句柄、
+      thewebview=nil，此时 LoadHtml 会被静默丢弃。HandleNeeded 强制先创建
+      句柄与 webview，保证首次加载也能落到内核，而不是只切页后留下空白页。 }
+    FPreviewBrowser.HandleNeeded;
     { Wke 直接加载 UTF-16 HTML 字符串；中文路径的图片已内嵌为 data URI }
     FPreviewBrowser.LoadHtml(Html);
     FLastPreviewHtml := Html;
+    FPreviewLoadedOnce := True;
     SetStatus('预览已刷新（Wke 内核）：' + Title);
   except
     on E: Exception do
@@ -2543,11 +2555,25 @@ begin
   end;
 end;
 
+procedure TMainForm.PageControlChange(Sender: TObject);
+begin
+  { 用户直接点击“HTML 预览”选项卡（未走“预览效果”按钮）时，首次进入同样
+    需要把内容送进刚创建的 webview。仅在从未成功加载过时补一次，避免每次
+    切换选项卡都重建预览、丢失滚动位置。 }
+  if (FPageControl = nil) or (FPageControl.ActivePageIndex <> 3) then
+    Exit;
+  if not FPreviewLoadedOnce then
+    RefreshPreview;
+end;
+
 procedure TMainForm.BtnRefreshPreviewClick(Sender: TObject);
 begin
-  RefreshPreview;
+  { 必须先切到 HTML 预览页再加载：隐藏页上的 Wke 控件没有窗口句柄，
+    thewebview 尚未创建，先加载会被静默丢弃，导致首次预览一片空白。
+    切页后控件可见并创建内核，RefreshPreview 内部的 HandleNeeded 再兜底。 }
   if FPageControl.PageCount > 0 then
     FPageControl.ActivePageIndex := 3;  // 切换到 HTML 预览页
+  RefreshPreview;
 end;
 
 procedure TMainForm.CreateBuildTab(APage: TTabSheet);
@@ -3866,6 +3892,7 @@ var
   I, HasAudio, HasVideo, HasChapter: Integer;
   ListText, PreviewHtml, SourceHtml, ZhHtml, ZhDir, ZhImg: string;
   BuildOk, PreviewOk, WkeOk: Boolean;
+  FirstPreviewOk, LoadedFlagOk, PageChangeOk: Boolean;
   SourceOk, SourceFormOk, ChinesePathOk, MediaPanelOk, DatePickerOk: Boolean;
   TagHiOk, TagOk2, TagOk3, TagOk4, TagOk5: Boolean;
   TagP: TPoint;
@@ -3906,6 +3933,9 @@ var
 begin
   F := TMainForm.Create(nil);
   Lines := TStringList.Create;
+  FirstPreviewOk := False;
+  LoadedFlagOk := False;
+  PageChangeOk := False;
   FmtOk := False;
   FmtQuoteOk := False;
   FmtBtnOk := False;
@@ -4352,6 +4382,27 @@ begin
     Lines.Add(' Wke.dll=' + TPath.Combine(ExtractFilePath(ParamStr(0)), 'Wke.dll') +
       ' exists=' + BoolToStr(TFile.Exists(TPath.Combine(ExtractFilePath(ParamStr(0)), 'Wke.dll')), True));
 
+    { 回归：首次进入“HTML 预览”页一片空白的问题。
+      根因是隐藏页上的 Wke 控件无句柄、thewebview 未创建，旧代码先 LoadHtml
+      后切页，加载被静默丢弃。修复后：RefreshPreview 先 HandleNeeded 再加载
+      并置位 FPreviewLoadedOnce；PageControlChange 在首次切到预览页时补加载。
+      自检不 Show 窗体，无法验证真实 webview 句柄，故验证可观测的加载标志与
+      切换逻辑：首次 RefreshPreview 后标志为真、内容已缓存；之后切页不再重复。 }
+    Lines.Add('=== First-preview load checks ===');
+    F.FPreviewLoadedOnce := False;
+    F.FLastPreviewHtml := '';
+    F.RefreshPreview;
+    LoadedFlagOk := F.FPreviewLoadedOnce and (F.FLastPreviewHtml <> '') and
+      (Pos('<html', LowerCase(F.FLastPreviewHtml)) > 0);
+    { 模拟再次切到预览页：已加载过则不应改变缓存内容（不重复加载） }
+    F.FPageControl.ActivePageIndex := 3;
+    F.PageControlChange(F.FPageControl);
+    PageChangeOk := F.FPreviewLoadedOnce;
+    FirstPreviewOk := LoadedFlagOk and PageChangeOk;
+    Lines.Add(' RefreshPreview loaded flag=' + BoolToStr(LoadedFlagOk, True) +
+      ' page-change idempotent=' + BoolToStr(PageChangeOk, True) +
+      ' cached html len=' + F.FLastPreviewHtml.Length.ToString);
+
     { 验证“查看源代码”：应能取到 FPreviewBrowser 当前 HTML，且查看窗体可显示中文 }
     Lines.Add('=== View source checks ===');
     SourceFormOk := False;
@@ -4611,7 +4662,7 @@ begin
        (F.FResourceProposal.TriggerChars = '{') and
        (HasAudio > 0) and (HasVideo > 0) and (HasChapter > 0) and
        (F.FSynEditor.Font.Name <> '') and (F.FSynEditor.Font.Size > 0) and
-       PreviewOk and WkeOk and SourceOk and SourceFormOk and ChinesePathOk and
+       PreviewOk and WkeOk and FirstPreviewOk and SourceOk and SourceFormOk and ChinesePathOk and
        MediaPanelOk and ImageMapOk and PanelPreviewOk and DatePickerOk and TagHiOk and
        FmtBtnOk and FmtOk and FmtStructureOk and FmtIdempotentOk and FmtQuoteOk and
        ChBtnOk and ChFmtOk and ChSyncOk and ChUndoOk and

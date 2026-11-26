@@ -1,8 +1,107 @@
-﻿SELFTEST RESULT: PASS
+﻿=== SynEdit integration checks ===
+ Highlighter=TSynEpubPlaceholderSyn (expected TSynEpubPlaceholderSyn, a TSynHTMLSyn descendant)
+ Proposal.Editor=TSynEdit (expected TSynEdit)
+ TriggerChars={
+=== Placeholder highlighter checks ===
+  token={{image:R001}} kind=0 attr=placeholder_image
+  token={{audio:R002}} kind=1 attr=placeholder_audio
+  token={{video:R003}} kind=2 attr=placeholder_video
+  token={{link:C006}} kind=3 attr=placeholder_link
+  token={{custom:X}} kind=4 attr=placeholder_unknown
+ Wide-char 3-line mix: rebuilt+no-color-bleed=True continuous=True
+ ClassOk=True AttrsOk=True tokens=5 matched=5 paired=True htmlIntact=True kindsOk=True iniOk=True attrCaseOk=True
+ Style dialog controls ok=True
+ Style button=True overall=True
+ Proposal items=9 CanExecute=True
+ audio candidates=1 video candidates=1 chapter-link candidates=4
+    [▣ 图片  R001 - cover.png]
+    [♪ 音频  R002 - sample.mp3]
+    [▶ 视频  R003 - sample.mp4]
+    [↗ 章节  C004 - 封面]
+    [↗ 章节  C005 - 第一章 简介]
+    [↗ 章节  C006 - 第二章 音视频]
+    [↗ 章节  C007 - 2.1 音频细节]
+    [{ 输入普通左花括号 {]
+    [} 输入普通右花括号 }]
+
+=== Publication date checks ===
+ Control=TDateTimePicker (expected TDateTimePicker)
+ Date=2026-11-26 Format=yyyy-MM-dd ok=True
+=== Language dropdown checks ===
+ Control=TComboBox items=16 item0=简体中文 (zh-CN) code=zh-CN ok=True
+=== Font settings checks ===
+ Font.Name=宋体 Size=14 Color=$000000
+=== Chapter format checks ===
+ Button exists=True formatted=True chapter synced=True
+--- formatted chapter ---
+<div>
+  <h1>标题</h1>
+  <p>正文 <span>强调</span></p>
+</div>
+
+------------------------
+ Undo restored=True
+=== Resource picker dialog checks ===
+ Dlg.Height=380 ClientHeight=341 btnPanel.Height=48 btn.Top=9 btn.Bottom=39
+ Button fully inside bottom panel=True
+=== Chapter tag highlight checks ===
+ SelectedColor + mouse handlers=True
+ Click open <div> -> pair block=True
+ Click close </div> -> pair block=True
+ Nested same-name <div> -> outer pair=True
+=== HTML preview checks ===
+ Preview has audio tag=True video tag=True file url=True
+ Preview html length=943
+=== Wke browser checks ===
+ Preview browser=TWkeWebBrowser (expected TWkeWebBrowser)
+ Wke.LoadHtml=OK
+ Wke.dll=C:\Users\yls\Desktop\pdfview\epub文件生成器\GUI\Wke.dll exists=True
+=== First-preview load checks ===
+ RefreshPreview loaded flag=True page-change idempotent=True cached html len=943
+=== View source checks ===
+ Source length=39 has html tag=True
+ Source editor=TSynEdit (expected TSynEdit) highlighter=TSynEpubPlaceholderSyn (expected TSynHTMLSyn) readonly=True
+ SelectedColor.Background=$F0F0F0 (expected 00F0F0F0 light gray)
+ Click open <div> -> pair block=True len=43
+ Click close </div> -> pair block=True
+ Click <span> -> own pair only=True [<span>测试</span>]
+ Nested same-name <div> -> full outer pair=True [<div><div>内层</div></div>]
+ Format button exists=True formatted=True lines=14
+--- formatted source ---
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>标题</title>
+  </head>
+  <body>
+    <div id="a">
+      <p>文本 <span>内联</span></p>
+      <p>第二行</p>
+    </div>
+  </body>
+</html>
+
+-----------------------
+ Format idempotent=True
+ Attribute/script preserved=True
+ Restore original=True
+ Source dialog shows Chinese=True
+=== Chinese path image checks ===
+ Placeholder with Chinese path -> data URI=True
+ Raw img src with Chinese path -> data URI=True
+=== Media playback checks ===
+ Media items=2 player=epub_prev_media_58684_7.mp3 visible=True
+=== Image preview panel checks ===
+ Image candidate[0]=cover.png
+ Panel width=233 list width=500 visible=True
+ Dock left x=0 right x=166 ok=True
+SELFTEST RESULT: PASS
 OUTPUT: C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub
-09:13:18  开始构建：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub
-09:13:18  元数据已写入，章节数 4，资源数 3
-09:13:18    资源 R001 [图片] -> OEBPS/Images/cover.png
-09:13:18    资源 R002 [音频] -> OEBPS/Media/narration.mp3
-09:13:18    资源 R003 [视频] -> OEBPS/Media/demo.mp4
-09:13:18  构建完成：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub（1040495 字节）
+13:00:17  开始构建：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub
+13:00:17  元数据已写入，章节数 4，资源数 3
+13:00:17    资源 R001 [图片] -> OEBPS/Images/cover.png
+13:00:17    资源 R002 [音频] -> OEBPS/Media/narration.mp3
+13:00:17    资源 R003 [视频] -> OEBPS/Media/demo.mp4
+13:00:17  构建完成：C:\Users\yls\AppData\Local\Temp\EpuBuilderGuiSelfTest.epub（1040498 字节）
+13:00:17  章节内容已格式化排版：1 → 5 行
